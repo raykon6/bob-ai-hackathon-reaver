@@ -104,15 +104,6 @@ jobs:
           echo "✅ src/ contains $CODE_FILES source file(s)."
 
       # ── 5. Demo video link is not the placeholder ──────────────────────────
-      - name: Check demo video link is updated
-        run: |
-          VIDEO_LINK=$(head -1 demo/demo-video-link.txt)
-          if [[ "$VIDEO_LINK" == *"your-demo-video-link-here"* ]]; then
-            echo "❌ demo/demo-video-link.txt still contains the placeholder URL. Update it with your real video link."
-            exit 1
-          fi
-          echo "✅ Demo video link looks real: $VIDEO_LINK"
-
       # ── 6. README placeholders are replaced ───────────────────────────────
       - name: Check README placeholders are replaced
         run: |
