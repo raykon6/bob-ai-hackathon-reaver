@@ -99,3 +99,5 @@ logs/
 src/.env
 *.db
 *.sqlite3
+# the submitted demo video is committed deliberately (38 MB, under GitHub limits)
+!demo/demo-video.mp4

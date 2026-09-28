@@ -1,17 +1,14 @@
-PENDING — demo video link will replace this line before the submission deadline
+https://github.com/raykon6/bob-ai-hackathon-reaver/blob/main/demo/demo-video.mp4
 
-Replace the line above with a link to the demo video.
+Demo video (1 min 28 s, with narration), stored in this repository as
+demo/demo-video.mp4. Direct download / in-browser playback:
+https://github.com/raykon6/bob-ai-hackathon-reaver/raw/main/demo/demo-video.mp4
 
-Accepted platforms:
-  - YouTube (public or unlisted)
-  - Loom (https://www.loom.com/share/...)
-  - IBM Box (https://ibm.box.com/s/...)
-  - Google Drive (set to "Anyone with the link can view")
-
-Video requirements:
-  - Length: 3–5 minutes maximum
-  - Must show the application running (not just slides)
-  - Should walk through at least one key feature end-to-end
-  - Audio narration strongly recommended
+What it shows:
+  - The Evidence Triage Console running against the live API
+  - Triage of the reference homicide scene, with a score breakdown expanded
+  - A case-tuned ruleset (Bob proposes, the engine clamps, freezes and hashes)
+  - The same scene re-ranked for a different crime type
+  - IBM Bob calling the evidence-triage MCP tool (triage_scene) in Agent mode
 
 Script: presentation/video-script.md

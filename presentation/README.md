@@ -1,9 +1,11 @@
 # Presentation
 
-The deck is [`slides.pptx`](slides.pptx). Export a `slides.pdf` copy next to it
-if the submission portal prefers PDF.
+| File | What it is |
+|---|---|
+| [`Evidence_Triage_Pitch.pdf`](Evidence_Triage_Pitch.pdf) ([`.pptx`](Evidence_Triage_Pitch.pptx)) | **The pitch deck** — 11 slides: the Hyderabad case, why a chatbot ranking fails in court, the classify/decide split, a fully worked score, urgency, adversarial tests, live IBM Bob run, and our ask |
+| [`slides.pdf`](slides.pdf) ([`.pptx`](slides.pptx)) | Technical deck — architecture, pipeline, reproducibility and audit details |
 
-Suggested flow (maps to the evaluation rubric):
+The pitch follows this flow (maps to the evaluation rubric):
 
 1. **Problem** — Hyderabad 2019: 3,000+ photos, 200+ items, DNA cigarette butt
    nearly missed; FSL backlog. Who hurts and why now.

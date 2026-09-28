@@ -122,7 +122,9 @@ cd src && pytest -q
 
 ## Demo
 
-- Video: [`demo/demo-video-link.txt`](demo/demo-video-link.txt)
+- Video: [`demo/demo-video.mp4`](demo/demo-video.mp4) (1 min 28 s, narrated) — link also in
+  [`demo/demo-video-link.txt`](demo/demo-video-link.txt)
+- Pitch deck: [`presentation/Evidence_Triage_Pitch.pdf`](presentation/Evidence_Triage_Pitch.pdf)
 - Live demo: [`demo/live-demo-url.txt`](demo/live-demo-url.txt) — the single-page
   console also runs fully in-browser (offline mirror of the same engine) and can
   be shared as a hosted link.
