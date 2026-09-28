@@ -51,6 +51,20 @@ def build_system_prompt() -> str:
     )
 
 
+def _parse_json_array(text: str):
+    """Parse the model output as JSON; if a shell wrapper (e.g. Bob Shell) added
+    prose around it, fall back to the outermost [...] block. The result is still
+    strictly validated item by item, so this never lets bad data through."""
+    cleaned = _strip_fences(text)
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        start, end = cleaned.find("["), cleaned.rfind("]")
+        if start == -1 or end <= start:
+            raise
+        return json.loads(cleaned[start:end + 1])
+
+
 def _strip_fences(text: str) -> str:
     # Defensive only — the prompt forbids fences, but a stray ``` shouldn't break us.
     stripped = text.strip()
@@ -92,7 +106,7 @@ def extract_items_with_raw(
         last_response = response
 
         try:
-            data = json.loads(_strip_fences(response))
+            data = _parse_json_array(response)
             if not isinstance(data, list):
                 raise ValueError("top-level JSON value must be an array")
         except (json.JSONDecodeError, ValueError, TypeError) as exc:

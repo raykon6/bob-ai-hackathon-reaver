@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS evidence_log (
     final_score        REAL,
     urgency_flag       INTEGER NOT NULL,
     rules_version_hash TEXT NOT NULL,
+    ruleset_json       TEXT,
     created_at         TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_evidence_log_session ON evidence_log(session_id);
@@ -45,9 +46,17 @@ def _connect(db_path: str | Path) -> sqlite3.Connection:
     return conn
 
 
+def _ensure_schema(conn: sqlite3.Connection) -> None:
+    """Create the table, and add columns introduced after a DB was first created."""
+    conn.executescript(_SCHEMA)
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(evidence_log)")}
+    if "ruleset_json" not in cols:  # databases created before case rulesets existed
+        conn.execute("ALTER TABLE evidence_log ADD COLUMN ruleset_json TEXT")
+
+
 def init_db(db_path: str | Path = DEFAULT_DB_PATH) -> None:
     with _connect(db_path) as conn:
-        conn.executescript(_SCHEMA)
+        _ensure_schema(conn)
 
 
 def log_run(
@@ -56,7 +65,10 @@ def log_run(
     crime_type: str = "unknown",
     db_path: str | Path = DEFAULT_DB_PATH,
     raw_model_output: str | None = None,
+    ruleset_json: str | None = None,
 ) -> None:
+    """`ruleset_json` is set for case-tuned (dynamic) runs: the frozen ruleset the
+    items were scored against, so /audit?verify can re-hash and re-score it."""
     created_at = datetime.now(timezone.utc).isoformat()
     rows = [
         (
@@ -71,18 +83,19 @@ def log_run(
             s.final_score,
             1 if s.urgency_flag else 0,
             s.rules_version_hash,
+            ruleset_json,
             created_at,
         )
         for s in scored
     ]
     with _connect(db_path) as conn:
-        conn.executescript(_SCHEMA)
+        _ensure_schema(conn)
         conn.executemany(
             """INSERT INTO evidence_log
                (session_id, rank, crime_type, item_name, category, extracted_item,
                 raw_model_output, score_breakdown, final_score, urgency_flag,
-                rules_version_hash, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                rules_version_hash, ruleset_json, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             rows,
         )
         conn.commit()
@@ -90,7 +103,7 @@ def log_run(
 
 def get_run(session_id: str, db_path: str | Path = DEFAULT_DB_PATH) -> list[dict]:
     with _connect(db_path) as conn:
-        conn.executescript(_SCHEMA)
+        _ensure_schema(conn)
         cur = conn.execute(
             "SELECT * FROM evidence_log WHERE session_id = ? ORDER BY rank ASC, id ASC",
             (session_id,),
@@ -99,7 +112,7 @@ def get_run(session_id: str, db_path: str | Path = DEFAULT_DB_PATH) -> list[dict
         for row in cur.fetchall():
             d = dict(row)
             d["urgency_flag"] = bool(d["urgency_flag"])
-            for jf in ("extracted_item", "score_breakdown"):
+            for jf in ("extracted_item", "score_breakdown", "ruleset_json"):
                 if d.get(jf):
                     try:
                         d[jf] = json.loads(d[jf])

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import functools
 import hashlib
+import json
 from pathlib import Path
 from typing import Optional
 
@@ -28,6 +29,33 @@ class RulesConfig(BaseModel):
     context_flag_modifiers: dict[str, float]
     score_urgent: float
     force_urgent_flags: list[str]
+
+    # ---- dynamic (case-specific) rulesets --------------------------------------
+    # A case ruleset is not a file, so it is hashed over its canonical JSON instead:
+    # sorted keys + fixed separators give byte-identical output for identical content.
+
+    def to_mapping(self) -> dict:
+        """Every scoring parameter, without the version/hash identity fields."""
+        return {
+            "category_base_weights": dict(self.category_base_weights),
+            "crime_type_multipliers": {k: dict(v) for k, v in self.crime_type_multipliers.items()},
+            "degradation_risk_by_condition": dict(self.degradation_risk_by_condition),
+            "condition_normalization": dict(self.condition_normalization),
+            "default_condition": self.default_condition,
+            "context_flag_modifiers": dict(self.context_flag_modifiers),
+            "score_urgent": self.score_urgent,
+            "force_urgent_flags": list(self.force_urgent_flags),
+        }
+
+    @staticmethod
+    def canonical_hash(mapping: dict) -> str:
+        canonical = json.dumps(mapping, sort_keys=True, separators=(",", ":")).encode()
+        return "case-" + hashlib.sha256(canonical).hexdigest()
+
+    @classmethod
+    def from_mapping(cls, mapping: dict, *, version: str) -> "RulesConfig":
+        """Freeze a (validated) parameter mapping into an immutable, hashed ruleset."""
+        return cls(version=version, version_hash=cls.canonical_hash(mapping), **mapping)
 
     def normalize_condition(self, condition: Optional[str]) -> str:
         """Map a free-text condition onto a canonical degradation key.

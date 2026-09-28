@@ -187,8 +187,26 @@ class ScoreRequest(BaseModel):
 class TriageRequest(BaseModel):
     raw_text: str
     crime_type: str = "unknown"
+    # False: score against the fixed rules_v1.yaml. True: the model proposes a
+    # case-tuned ruleset, which is clamped, frozen and hashed before scoring.
+    dynamic_rules: bool = False
     _check_text = field_validator("raw_text")(staticmethod(validate_raw_text))
     _check_crime = field_validator("crime_type")(staticmethod(validate_crime_type))
+
+
+class CaseRulesetInfo(BaseModel):
+    """Everything needed to understand — and reproduce — a case-tuned ruleset."""
+
+    mode: str = "dynamic"
+    version: str
+    version_hash: str                       # "case-<sha256 of canonical parameters>"
+    source: str                             # watsonx | bob-shell | heuristic
+    fallback_reason: Optional[str] = None   # why the model proposal was not used
+    rationale: str = ""
+    evaluation_angles: dict[str, str] = Field(default_factory=dict)
+    adjustments: list[dict] = Field(default_factory=list)   # diff vs the base ruleset
+    clamps: list[str] = Field(default_factory=list)         # what the validator corrected
+    parameters: dict = Field(default_factory=dict)          # the frozen, hashed ruleset
 
 
 class TriageResponse(BaseModel):
@@ -197,5 +215,7 @@ class TriageResponse(BaseModel):
     rules_version: str
     rules_version_hash: str
     generated_at: str
-    extractor: str = "unknown"   # which extractor actually ran: watsonx | offline-deterministic
+    extractor: str = "unknown"   # which extractor actually ran: watsonx | bob-shell | offline-deterministic
+    ruleset_mode: str = "static"  # static | dynamic
+    case_ruleset: Optional[CaseRulesetInfo] = None
     schedule: list[ScoredItem]

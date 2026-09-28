@@ -27,9 +27,20 @@ the ruleset's SHA-256 hash and logged).
 ## Available tools (server: evidence-triage)
 
 - `extract_evidence(raw_text)` — classify only, no scores.
-- `score_evidence(items, crime_type)` — deterministic score + rank; returns a
-  session_id and the ruleset hash; writes to the audit log.
-- `triage_scene(raw_text, crime_type)` — extract then score & rank in one call.
+- `generate_case_ruleset(raw_text, crime_type)` — propose scoring *parameters*
+  tuned to this scene (base weights, crime multipliers, degradation scale,
+  context-flag modifiers, urgency threshold) across eight evaluation angles. The
+  engine clamps the proposal to hard bounds, keeps the force-urgent safety floor,
+  and freezes + hashes it. Returns the ruleset and its diff from the base rules.
+- `score_evidence(items, crime_type, dynamic_rules=False)` — deterministic score +
+  rank; returns a session_id and the ruleset hash; writes to the audit log.
+- `triage_scene(raw_text, crime_type, dynamic_rules=False)` — extract then score &
+  rank in one call.
+
+Use `dynamic_rules=true` when the investigator wants the ruleset tuned to the
+case (unusual scene, mixed evidence, a specific line of inquiry). Even then you
+propose policy, never item scores: the frozen case ruleset is applied by the
+deterministic engine and stored with the run so it can be replayed exactly.
 
 Valid `crime_type` values: homicide, sexual_assault, burglary, assault, arson,
 narcotics, hit_and_run, cyber, unknown. An unrecognised value is rejected.

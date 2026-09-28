@@ -196,6 +196,34 @@
     transition:opacity .2s ease,transform .2s ease;z-index:50}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+  .toggle{display:flex;gap:10px;align-items:flex-start;margin:0 0 16px;padding:11px 12px;border:1px solid var(--border);
+    border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;transition:border-color .16s ease,background .16s ease}
+  .toggle:hover{border-color:var(--faint)}
+  .toggle:has(input:checked){border-color:color-mix(in srgb,var(--accent) 45%,var(--border));background:var(--accent-soft)}
+  .toggle input{margin:2px 0 0;width:16px;height:16px;accent-color:var(--accent);flex:none;cursor:pointer}
+  .toggle input:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+  .toggle-text{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--ink-2)}
+  .toggle-text b{color:var(--ink);font-weight:600}
+  .toggle-text .hint{margin:0;line-height:1.45}
+  .case-rules{border:1px solid var(--border);border-radius:var(--radius);background:var(--ground);box-shadow:var(--shadow);padding:16px 18px;margin-bottom:20px}
+  .case-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+  .case-head h3{font-size:16px}
+  .case-head .caption{font-size:12px;color:var(--muted);margin-top:3px}
+  .case-rationale{font-size:13px;color:var(--ink-2);margin:10px 0 14px;max-width:80ch}
+  .case-rationale:empty{display:none}
+  .case-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px 28px}
+  @media (max-width:760px){.case-grid{grid-template-columns:1fr}}
+  table.adj{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.adj th{text-align:left;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--border)}
+  table.adj th.num,table.adj td.num{text-align:right}
+  table.adj td{padding:6px 8px;border-bottom:1px solid var(--border);color:var(--ink-2)}
+  table.adj td.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+  table.adj td.up{color:var(--ink);font-weight:600}
+  .angles{margin:0;display:grid;gap:9px}
+  .angles dt{font-size:11.5px;font-weight:600;color:var(--ink);text-transform:capitalize}
+  .angles dd{margin:1px 0 0;font-size:12px;color:var(--muted);line-height:1.45}
+  .case-clamps{margin-top:14px;font-size:12px;color:var(--ink-2);border-top:1px solid var(--border);padding-top:10px}
+  .case-clamps b{color:var(--ink)}
   .offline-note{border:1px solid color-mix(in srgb,var(--high) 45%,var(--border));
     background:color-mix(in srgb,var(--high) 8%,var(--ground));color:var(--ink-2);
     border-radius:var(--radius-sm);padding:11px 14px;font-size:12.5px;margin-bottom:18px;line-height:1.5}
@@ -246,6 +274,13 @@
             <span class="lab">Recovered items <span class="hint">one per line</span></span>
             <textarea id="items" name="items" spellcheck="false"></textarea>
           </label>
+          <label class="toggle" for="dynamicRules">
+            <input type="checkbox" id="dynamicRules" name="dynamicRules">
+            <span class="toggle-text">
+              <b>Case-tuned ruleset</b>
+              <span class="hint">Bob proposes weights, multipliers and baselines for this scene; the engine clamps, freezes and hashes them before scoring.</span>
+            </span>
+          </label>
           <div class="actions">
             <button class="btn primary" type="submit" id="runBtn">Run triage</button>
             <button class="btn secondary" type="button" id="sampleBtn">Load case</button>
@@ -267,8 +302,35 @@
       </div>
 
       <div class="offline-note" id="offlineNote" hidden>
-        <b>Preview mode &mdash; backend not connected.</b> These results come from an in-browser mirror of the engine, <b>not the audited Python scorer</b>, and nothing is logged. Start the API (<span class="mono">python run.py</span>) for authoritative, logged results.
+        <b>Preview mode &mdash; backend not connected.</b> These results come from an in-browser mirror of the engine, <b>not the audited Python scorer</b>, and nothing is logged. Start the API (<span class="mono">python run.py</span>) for authoritative, logged results. Case-tuned rulesets need the API.
       </div>
+
+      <section class="case-rules" id="caseRules" hidden aria-labelledby="caseRulesTitle">
+        <div class="case-head">
+          <div>
+            <h3 id="caseRulesTitle">Case-tuned ruleset</h3>
+            <div class="caption" id="caseMeta"></div>
+          </div>
+          <span class="src-badge api mono" id="caseHash"></span>
+        </div>
+        <p class="case-rationale" id="caseRationale"></p>
+        <div class="case-grid">
+          <div>
+            <div class="dk">Adjusted against the base rules</div>
+            <div class="table-scroll">
+              <table class="adj">
+                <thead><tr><th scope="col">Parameter</th><th scope="col" class="num">Base</th><th scope="col" class="num">This case</th></tr></thead>
+                <tbody id="caseAdj"></tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <div class="dk">Evaluation angles</div>
+            <dl class="angles" id="caseAngles"></dl>
+          </div>
+        </div>
+        <div class="case-clamps" id="caseClamps" hidden></div>
+      </section>
 
       <div class="summary" id="summary" hidden>
         <div class="stat accent-stripe"><div class="k">Items triaged</div><div class="v mono" id="s-total">0</div><div class="u" id="s-cats">across 0 categories</div></div>
@@ -815,6 +877,26 @@ function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;","
 function catInfo(c){return CAT[c]||CAT.other;}
 
 const EMPTY_TITLE=$("#emptyTitle").textContent, EMPTY_MSG=$("#emptyMsg").textContent;
+const SOURCE_LABEL={"heuristic":"the deterministic case heuristic","watsonx":"watsonx Granite","bob-shell":"IBM Bob Shell"};
+function renderCaseRules(res){
+  const box=$("#caseRules"), info=res&&res.case_ruleset;
+  box.hidden=!info;
+  if(!info) return;
+  $("#caseMeta").textContent="Proposed by "+(SOURCE_LABEL[info.source]||info.source)
+    +" · clamped, frozen and hashed before scoring"
+    +(info.fallback_reason?" · model fallback: "+info.fallback_reason:"");
+  $("#caseHash").textContent=info.version_hash.slice(0,17);
+  $("#caseRationale").textContent=info.rationale||"";
+  const fmt=v=>Array.isArray(v)?v.join(", "):String(v);
+  $("#caseAdj").innerHTML=(info.adjustments||[]).length
+    ? info.adjustments.map(a=>`<tr><td>${esc(a.parameter)}</td><td class="num">${esc(fmt(a.baseline))}</td><td class="num up">${esc(fmt(a.case))}</td></tr>`).join("")
+    : `<tr><td colspan="3">No change from the base ruleset.</td></tr>`;
+  $("#caseAngles").innerHTML=Object.entries(info.evaluation_angles||{})
+    .map(([k,v])=>`<div><dt>${esc(k.replace(/_/g," "))}</dt><dd>${esc(v)}</dd></div>`).join("");
+  const cl=$("#caseClamps");
+  cl.hidden=!(info.clamps&&info.clamps.length);
+  if(!cl.hidden) cl.innerHTML="<b>Validator corrections:</b> "+info.clamps.map(esc).join("; ");
+}
 function renderError(msg){
   render({schedule:[]});
   $("#emptyTitle").textContent="Triage failed on the server";
@@ -827,6 +909,7 @@ function render(res){
   const show=schedule.length>0;
   $("#tableWrap").hidden=!show; $("#summary").hidden=!show; $("#empty").hidden=show;
   $("#offlineNote").hidden = !show || res.source==="api";
+  renderCaseRules(show?res:null);
   if(!show)return;
 
   const urgent=schedule.filter(s=>s.urgency_flag).length;
@@ -881,7 +964,7 @@ function render(res){
         </div>`:`<div class="rationale">No score &mdash; item flagged for manual review; the deterministic engine is never fed unvalidated data.</div>`}
       </div>
       <div>
-        <div class="dk">Extracted attributes ${res.source!=="api"?"(in-browser mirror)":(res.extractor&&res.extractor.indexOf("watsonx")>=0?"(from Bob / watsonx Granite)":"(offline extractor)")}</div>
+        <div class="dk">Extracted attributes ${res.source!=="api"?"(in-browser mirror)":(res.extractor==="bob-shell"?"(from IBM Bob Shell)":res.extractor==="watsonx"?"(from watsonx Granite)":"(offline extractor)")}</div>
         <div class="kv">
           <div class="row"><span class="rk">Location</span><span class="rv">${esc(s.item.location_found||"—")}</span></div>
           <div class="row"><span class="rk">Condition</span><span class="rv">${esc(s.item.condition||"—")}</span></div>
@@ -908,7 +991,7 @@ async function run(){
   let r;
   try{
     r=await fetch(API_BASE+"/triage",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({raw_text:raw,crime_type:crime})});
+      body:JSON.stringify({raw_text:raw,crime_type:crime,dynamic_rules:$("#dynamicRules").checked})});
   }catch(err){
     // Server unreachable (static demo) -> in-browser mirror, clearly labelled.
     render(offlineTriage(raw,crime));

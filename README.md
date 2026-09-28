@@ -66,6 +66,34 @@ and [`docs/architecture.md`](docs/architecture.md).
 - **Auditable** — SQLite log replays any past run without calling the model again.
 - **Honest failure mode** — unvalidated extractions become `needs_manual_review`
   with nulled fields; they never reach the scorer.
+- **Case-tuned rulesets (opt-in)** — Bob can propose weights, crime multipliers,
+  degradation baselines and flag modifiers tuned to *this* scene, reasoning across
+  eight evaluation angles. The engine clamps the proposal, keeps the safety floor,
+  then freezes and hashes it — so the schedule is still exactly reproducible.
+- **IBM Bob Shell routing** — set `BOB_SHELL_CMD` and every LLM call (extraction
+  and ruleset proposals) goes through Bob Shell.
+
+## Case-tuned rulesets
+
+A single fixed ruleset can't weigh every scene well — a poisoning, a burglary and
+a scene soaked by rain stress different evidence. With `dynamic_rules=true`:
+
+1. **Propose** — the model reads the extracted items and proposes scoring
+   *parameters* for this case, covering probative value, individualization, legal
+   relevance, fragility, time sensitivity, contamination risk, chain of custody and
+   corroboration. It still never scores or ranks an item.
+2. **Clamp** — every number is forced into hard bounds (e.g. base weight 1–12,
+   multiplier 0.5–2.5), unknown categories/flags are dropped, the degradation scale
+   stays non-decreasing, and force-urgent safety flags can be added but never removed.
+3. **Freeze + hash** — the result becomes a ruleset `1.1.1+case` with hash
+   `case-<sha256>` over its canonical JSON.
+4. **Score** — the same pure engine scores against the frozen ruleset.
+5. **Replay** — the frozen ruleset is stored with the run; `GET /audit/{id}?verify=true`
+   re-hashes it (tamper detection) and re-scores every item.
+
+Try it: tick **Case-tuned ruleset** in the console, `POST /ruleset` to preview one,
+or ask Bob to call `triage_scene` with `dynamic_rules: true`. With no model
+configured, a deterministic case heuristic proposes the parameters instead.
 
 ## Tech Stack
 

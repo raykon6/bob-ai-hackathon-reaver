@@ -55,6 +55,60 @@ class WatsonxClient:
 
 
 # --------------------------------------------------------------------------- #
+#  IBM Bob Shell — route every LLM call through a shell command
+# --------------------------------------------------------------------------- #
+class ShellClient:
+    """Sends each LLM call (extraction AND case-ruleset proposals) through a shell
+    command, e.g. IBM Bob Shell in non-interactive mode. Configure BOB_SHELL_CMD:
+
+        BOB_SHELL_CMD=bob -p "{prompt_file}"     # prompt written to a temp file
+        BOB_SHELL_CMD=my-bob-wrapper             # prompt piped on stdin
+
+    If the command contains {prompt_file}, the prompt is written to a UTF-8 temp
+    file and its path substituted; otherwise the prompt is sent on stdin. The
+    command's stdout is the completion. A non-zero exit, a timeout or empty output
+    raises, which the pipeline reports as a 503 rather than guessing.
+    """
+
+    def __init__(self, command: str, timeout: float | None = None) -> None:
+        self.command = command
+        self.timeout = timeout or float(os.environ.get("BOB_SHELL_TIMEOUT", "180"))
+
+    def complete(self, system: str, user: str, temperature: float = 0.0) -> str:
+        import subprocess
+        import tempfile
+
+        prompt = f"{system}\n\nINPUT:\n{user}\n"
+        command, stdin, tmp_path = self.command, prompt, None
+        try:
+            if "{prompt_file}" in command:
+                with tempfile.NamedTemporaryFile(
+                    "w", suffix=".txt", delete=False, encoding="utf-8"
+                ) as fh:
+                    fh.write(prompt)
+                    tmp_path = fh.name
+                command, stdin = command.replace("{prompt_file}", tmp_path), None
+            proc = subprocess.run(
+                command, shell=True, input=stdin, capture_output=True,
+                text=True, encoding="utf-8", timeout=self.timeout,
+            )
+        finally:
+            if tmp_path:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"Bob Shell command exited {proc.returncode}: {(proc.stderr or '').strip()[:300]}"
+            )
+        out = (proc.stdout or "").strip()
+        if not out:
+            raise RuntimeError("Bob Shell command returned no output")
+        return out
+
+
+# --------------------------------------------------------------------------- #
 #  Offline deterministic extractor (fallback / CI / demo)
 # --------------------------------------------------------------------------- #
 _CATEGORY_KEYWORDS: list[tuple[str, tuple[str, ...]]] = [
@@ -191,12 +245,24 @@ class OfflineExtractionClient:
 watsonx_fallback_reason: str | None = None
 
 
+def describe_client(client: LLMClient) -> str:
+    """Name of the extractor that actually runs — reported by /health and /triage."""
+    if isinstance(client, ShellClient):
+        return "bob-shell"
+    if isinstance(client, OfflineExtractionClient):
+        return "offline-deterministic"
+    return "watsonx"
+
+
 def get_default_client() -> LLMClient:
-    """watsonx if credentials are present and offline mode is off, else offline."""
+    """Priority: TRIAGE_OFFLINE=1 -> offline; BOB_SHELL_CMD -> Bob Shell;
+    watsonx credentials -> watsonx; otherwise offline."""
     global watsonx_fallback_reason
     watsonx_fallback_reason = None
     if os.environ.get("TRIAGE_OFFLINE", "0") == "1":
         return OfflineExtractionClient()
+    if os.environ.get("BOB_SHELL_CMD", "").strip():
+        return ShellClient(os.environ["BOB_SHELL_CMD"].strip())
     if os.environ.get("WATSONX_APIKEY") and os.environ.get("WATSONX_PROJECT_ID"):
         try:
             return WatsonxClient()
