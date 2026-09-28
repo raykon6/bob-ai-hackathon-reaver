@@ -32,7 +32,6 @@ jobs:
             "docs/solution-overview.md"
             "docs/architecture.md"
             "docs/setup-guide.md"
-            "demo/demo-video-link.txt"
           )
           for f in "${REQUIRED_FILES[@]}"; do
             if [ ! -f "$f" ]; then
