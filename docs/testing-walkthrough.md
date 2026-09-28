@@ -120,7 +120,7 @@ cd path\to\crime-scene-evidence-triage\src
 .\.venv\Scripts\Activate.ps1
 pytest -q
 ```
-Expect **45 passed**, including:
+Expect **57 passed**, including:
 - `test_scoring.py` — exact-match scores (zero tolerance)
 - `test_determinism.py` — scorer run 1000× is identical
 - `test_extraction_retry.py` — malformed/hallucinated LLM output is retried, then
@@ -166,4 +166,4 @@ python run.py
 - [ ] Changing crime type re-ranks the same items
 - [ ] Two identical `/triage` calls return identical scores
 - [ ] `/audit/{session_id}` replays a past run
-- [ ] `pytest -q` → 45 passed
+- [ ] `pytest -q` → 57 passed

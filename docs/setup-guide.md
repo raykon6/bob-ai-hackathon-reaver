@@ -101,7 +101,7 @@ a `breakdown`, and `rules_version_hash`.
 pytest -q
 ```
 
-Expect **45 passed**. These pin the scoring formula to exact numbers and run the
+Expect **57 passed**. These pin the scoring formula to exact numbers and run the
 scorer 1000× to prove it never drifts.
 
 ## 8. (Optional) Register the pipeline with IBM Bob via MCP

@@ -73,7 +73,7 @@ _Switch to a terminal, run `curl http://127.0.0.1:8000/health`._
 > drifts, and a SQLite audit log that can replay any past run without calling the
 > model again."**
 
-_Optional: show `pytest -q` → "45 passed"._
+_Optional: show `pytest -q` → "57 passed"._
 
 ---
 

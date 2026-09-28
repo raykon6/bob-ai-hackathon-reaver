@@ -30,8 +30,8 @@ exact ruleset that produced it.
 | **Innovation & differentiation (25)** | The extraction/decision split. `rules_v1.yaml` as a single, hashed source of truth; urgency as an independent boolean so perishables are never buried |
 | **Problem depth & vision (15)** | `docs/problem-statement.md` — grounded in the Hyderabad case, FSL backlog, and admissibility, not just the spec |
 | **Working demo (15)** | Runs with zero credentials via the offline extractor; `python run.py` → console at `127.0.0.1:8000`; `demo/` video + screenshots |
-| **IBM Bob integration (10)** | `src/app/mcp_server.py` exposes `extract_evidence` (LLM) + `score_evidence` (deterministic) as MCP tools; the tool boundary enforces the design rule. watsonx Granite client in `src/app/llm_client.py` |
-| **Documentation & reproducibility (10)** | `docs/setup-guide.md` (tested from a clean venv), 45-test suite incl. a 1000× determinism check, SQLite audit replay |
+| **IBM Bob integration (10)** | `src/app/mcp_server.py` exposes 4 MCP tools — `extract_evidence` (LLM), `generate_case_ruleset` (LLM proposes, engine clamps/freezes/hashes), `score_evidence` and `triage_scene` (deterministic scoring); the tool boundary enforces the design rule. `BOB_SHELL_CMD` routes every LLM call through IBM Bob Shell (`src/app/llm_client.py`) |
+| **Documentation & reproducibility (10)** | `docs/setup-guide.md` (tested from a clean venv), 57-test suite incl. a 1000× determinism check, SQLite audit replay |
 
 ## What to try in 60 seconds
 
@@ -40,7 +40,7 @@ cd src
 pip install -r requirements.txt
 $env:TRIAGE_OFFLINE = "1"; python run.py      # PowerShell; bash: export TRIAGE_OFFLINE=1
 # open http://127.0.0.1:8000 → Run triage → expand any "Breakdown"
-pytest -q                                      # 45 passed — proves determinism
+pytest -q                                      # 57 passed — proves determinism
 ```
 
 ## Honest limitations

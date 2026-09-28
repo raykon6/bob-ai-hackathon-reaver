@@ -1,16 +1,22 @@
 # =============================================================================
-#  submission.yaml — READ BY EVALUATORS FIRST. Fill every field below.
-#  Do not rename this file. Blank REQUIRED fields fail automated validation.
+# HACKATHON SUBMISSION METADATA
 # =============================================================================
+# Instructions:
+#   - Fill in ALL required fields (marked with # REQUIRED)
+#   - Optional fields can be left as empty strings ""
+#   - Do NOT rename this file — the evaluation pipeline reads it by name
+#   - Use double quotes around all string values
+# Problem statement: NFSU x IBM Bob Hackathon — Track 1 (Forensic Science), PS-03
+# =============================================================================
+
 team:
-  name: "REAVER"                                 # REQUIRED
-  track: "AI"                                    # REQUIRED — one of: AI | DevOps | Sustainability | Open
-  problem_track: "Track 1 · Forensic Science · PS-03"   # the problem-statement track (for reference)
+  name: "REAVER"                       # REQUIRED
+  track: "AI"                          # REQUIRED — one of: AI | DevOps | Sustainability | Open
   lead:
-    name: "Sarthak Singh"                        # REQUIRED
-    email: "sarthak1036@gmail.com"               # REQUIRED
+    name: "Sarthak Singh"              # REQUIRED
+    email: "sarthak1036@gmail.com"     # REQUIRED
   members:
-    - name: "Dular Bewal"
+    - name: "Dular Bewal"              # REQUIRED — Team member 1
       email: "dular.btmtcs1242931@nfsu.ac.in"
     - name: "Rishi Bhardwaj"
       email: "rishi.btmtcs1242928@nfsu.ac.in"
@@ -19,37 +25,62 @@ team:
 
 submission:
   title: "Evidence Triage Console — AI-Assisted Crime Scene Evidence Prioritization"   # REQUIRED
-  problem_statement: >                            # REQUIRED
-    Major crime scenes generate hundreds of physical items and thousands of
-    photographs (e.g. the 2019 Hyderabad homicide: 3,000+ photos, 200+ items).
-    Without triage, high-probative or perishable evidence — a DNA-bearing
-    cigarette butt, a wet bloodstained garment — is missed on the first sweep,
-    and overloaded Forensic Science Laboratories delay testing by weeks.
-  solution_summary: >                            # REQUIRED
-    An investigator lists recovered items in plain language. IBM Bob (watsonx.ai
-    Granite) extracts and classifies each item into a fixed 8-category evidence
-    taxonomy — and nothing more. A deterministic Python engine then scores each
-    item (crime-type relevance x category weight + degradation risk + context
-    flags), decides urgency by an independent boolean rule, and ranks everything
-    into an FSL examination schedule. Every result is stamped with the SHA-256
-    hash of the versioned ruleset, so any schedule is exactly reproducible and
-    court-traceable.
-  key_features:                                  # REQUIRED (3–5)
-    - "Bob / watsonx Granite extracts & classifies free text — the LLM never assigns a score, rank, or urgency."
-    - "Pure-Python scoring engine (Decimal, ROUND_HALF_UP): identical input yields byte-identical output, proven by zero-tolerance tests."
-    - "Every result carries the SHA-256 hash of rules_v1.yaml — the single, versioned source of truth — for court-grade traceability."
-    - "Urgency is a boolean OR computed independently of the score, so a low-scoring but perishable/volatile item is never buried."
-    - "SQLite audit log replays any past run without re-invoking the model; an MCP server lets Bob drive the whole pipeline conversationally."
+
+  problem_statement: >                 # REQUIRED — 1-3 sentences. What problem? Who has it?
+    Major crime scenes produce hundreds of items and thousands of photographs
+    (the 2019 Hyderabad homicide: 3,000+ photos, 200+ items, and a DNA-bearing
+    cigarette butt nearly missed on the first sweep), while overloaded Forensic
+    Science Laboratories delay testing by weeks. Investigating officers and FSL
+    examiners have no fast, defensible way to decide what to examine first.
+
+  solution_summary: >                  # REQUIRED — 1-3 sentences. What did you build?
+    An investigator lists recovered items in plain language; IBM Bob (watsonx.ai
+    Granite or Bob Shell) extracts and classifies each item, and a deterministic
+    Python engine scores, flags urgency and ranks them into an FSL examination
+    schedule. Scoring runs on a versioned ruleset — or, on request, a case-tuned
+    ruleset that the model proposes and the engine clamps, freezes and SHA-256
+    hashes — so every schedule is exactly reproducible and auditable.
+
+  key_features:                        # REQUIRED — List 3 to 5 specific features you implemented
+    - "IBM Bob drives the pipeline through 4 MCP tools; the model extracts and classifies but never assigns a score, rank or urgency."
+    - "Case-tuned rulesets: the model proposes scene-specific weights, multipliers and baselines across 8 evaluation angles; the engine clamps, freezes and hashes them before scoring."
+    - "Pure deterministic scoring engine (Decimal, ROUND_HALF_UP): identical input and ruleset give byte-identical output, pinned by 57 tests including a 1000x determinism check."
+    - "Independent urgency rule (score threshold OR force-urgent safety flags) so perishable or volatile evidence is never buried."
+    - "SQLite audit log with the verbatim model output; /audit?verify re-hashes the stored ruleset and re-scores every item to prove a past schedule reproduces."
 
   tech_stack:
-    - "Python 3.11+, FastAPI, Pydantic v2 (strict)"
-    - "IBM watsonx.ai (Granite) via ibm-watsonx-ai; Model Context Protocol (MCP) server for IBM Bob"
-    - "SQLite audit log; pytest regression suite"
-    - "Single-page HTML/JS console (Inter / Newsreader / IBM Plex Mono)"
+    languages: ["Python", "JavaScript", "HTML", "CSS"]
+    frameworks: ["FastAPI", "Pydantic v2", "Uvicorn", "pytest"]
+    ibm_technologies: ["IBM Bob (MCP integration)", "IBM Bob Shell (LLM call routing)", "IBM watsonx.ai (Granite)"]
+    databases: ["SQLite"]
+    other: ["Model Context Protocol (MCP)", "PyYAML", "GitHub Actions"]
 
-  ibm_bob_integration: >
-    Bob is the natural-language front-end and the extraction engine. In the MCP
-    integration, an investigator talks to Bob; Bob calls the `extract_evidence`
-    tool (LLM) and then the `score_evidence` tool (pure, deterministic Python).
-    The tool boundary enforces the core design rule: Bob structures the data,
-    the deterministic engine decides the priority.
+  what_we_are_most_proud_of: >
+    The split between language and decision. Bob reads the scene and classifies
+    it; the priority comes from a versioned (or case-tuned, clamped and frozen)
+    ruleset applied by pure Python. For any schedule we can show the exact
+    arithmetic and ruleset hash behind every rank, and /audit?verify proves it
+    reproduces — see src/app/scoring.py, src/app/ruleset_generator.py and
+    src/tests/.
+
+  known_limitations: >
+    With no model configured, extraction uses a deterministic keyword classifier
+    (demo/CI path); production classification quality depends on watsonx Granite
+    or Bob Shell. Base weights (rules v1.1.1) are defensible defaults, not yet
+    calibrated against real FSL case outcomes, and case-tuned rulesets are bounded
+    model proposals, not validated policy. BOB_SHELL_CMD must be set to the team's
+    Bob Shell non-interactive command; its exact CLI flags vary by Bob version. The
+    web console's in-browser fallback does not support case-tuned rulesets.
+
+# =============================================================================
+# ARTIFACT LOCATIONS
+# These paths are relative to the repo root. Only change if you moved files.
+# =============================================================================
+artifacts:
+  source_code: "src/"
+  setup_guide: "docs/setup-guide.md"
+  architecture_doc: "docs/architecture.md"
+  demo_video: "demo/demo-video-link.txt"   # URL to hosted video (YouTube, Loom, Box)
+  live_demo: "demo/live-demo-url.txt"      # URL to deployed demo (optional)
+  screenshots: "demo/screenshots/"
+  presentation: "presentation/"
