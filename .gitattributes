@@ -1,0 +1,15 @@
+# Normalize line endings so the rules_v1.yaml SHA-256 hash is identical for every
+# teammate regardless of OS / git autocrlf. The engine also normalizes at load,
+# but this keeps the committed bytes consistent too.
+* text=auto eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.py   text eol=lf
+*.md   text eol=lf
+*.json text eol=lf
+
+# Binary assets
+*.pptx binary
+*.pdf  binary
+*.png  binary
+*.jpg  binary

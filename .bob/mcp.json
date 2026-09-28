@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "evidence-triage": {
+      "command": "python",
+      "args": ["-m", "app.mcp_server"],
+      "cwd": "src",
+      "description": "Crime-scene evidence triage: extract_evidence (LLM) + score_evidence (deterministic). Bob classifies; the deterministic tool decides priority."
+    }
+  }
+}

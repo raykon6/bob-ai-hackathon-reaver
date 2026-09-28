@@ -1,0 +1,11 @@
+# Optional dependencies — the real Bob/watsonx extraction path and the MCP server.
+# The app and tests do NOT need these (the deterministic offline extractor covers
+# demos and CI). Install only when you want live watsonx classification or to
+# register the pipeline with IBM Bob via MCP.
+#
+#     pip install -r requirements-optional.txt
+#
+# These ranges resolve on Python 3.11–3.14.
+
+ibm-watsonx-ai>=1.6,<2.0
+mcp>=1.2

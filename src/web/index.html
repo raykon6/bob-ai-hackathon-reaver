@@ -1,0 +1,959 @@
+<title>Evidence Triage Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ground:#ffffff; --surface:#f6f7f8; --surface-2:#eef0f2;
+    --border:#e2e5e8; --border-strong:#cfd4d9;
+    --ink:#16181b; --ink-2:#3d434b; --muted:#6b727b; --faint:#9aa1a9;
+    --accent:#1f2d4d; --accent-ink:#ffffff; --accent-soft:#eef1f6;
+    --crit:#8a1f1f; --high:#9a5713; --med:#3f4b5c; --low:#767c85;
+    --focus:#3355aa;
+    --shadow:0 1px 2px rgba(16,18,27,.04),0 8px 24px -18px rgba(16,18,27,.30);
+    --radius:8px; --radius-sm:6px;
+    color-scheme:light;
+  }
+  :root:not([data-theme="light"]){
+    @media (prefers-color-scheme:dark){
+      --ground:#101215; --surface:#16191d; --surface-2:#1d2126;
+      --border:#282d33; --border-strong:#3a4048;
+      --ink:#e9ebee; --ink-2:#c2c7cd; --muted:#8b929b; --faint:#666d76;
+      --accent:#9db2da; --accent-ink:#0e1013; --accent-soft:#1a2130;
+      --crit:#e08585; --high:#d6a45f; --med:#9fb0c6; --low:#8b929b;
+      --focus:#7fa0e0;
+      --shadow:0 1px 2px rgba(0,0,0,.30),0 10px 30px -20px rgba(0,0,0,.7);
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#101215; --surface:#16191d; --surface-2:#1d2126;
+    --border:#282d33; --border-strong:#3a4048;
+    --ink:#e9ebee; --ink-2:#c2c7cd; --muted:#8b929b; --faint:#666d76;
+    --accent:#9db2da; --accent-ink:#0e1013; --accent-soft:#1a2130;
+    --crit:#e08585; --high:#d6a45f; --med:#9fb0c6; --low:#8b929b;
+    --focus:#7fa0e0;
+    --shadow:0 1px 2px rgba(0,0,0,.30),0 10px 30px -20px rgba(0,0,0,.7);
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);
+    font-family:"Inter",-apple-system,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  h1,h2,h3{font-family:"Newsreader",Georgia,serif;font-weight:500;margin:0;letter-spacing:-.01em}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+  .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+  ::selection{background:var(--accent);color:var(--accent-ink)}
+  :where(button,select,textarea,[tabindex]):focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:var(--radius-sm)}
+
+  .app{max-width:1220px;margin:0 auto;padding-inline:20px;padding-block:0 56px}
+  header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;
+    background:color-mix(in srgb,var(--ground) 88%,transparent);backdrop-filter:saturate(140%) blur(8px);
+    border-bottom:1px solid var(--border);margin-inline:-20px;padding:14px 20px 13px;margin-bottom:26px;
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:12px;min-width:0}
+  .mark{width:34px;height:34px;border-radius:7px;flex:none;background:var(--accent);color:var(--accent-ink);
+    display:grid;place-items:center;font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:15px;letter-spacing:-.03em}
+  .brand .name{font-family:"Newsreader",serif;font-size:19px;font-weight:600;line-height:1.1;white-space:nowrap}
+  .brand .sub{font-size:11.5px;color:var(--muted);letter-spacing:.02em}
+  .top-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .eyebrow{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .ghost-btn{appearance:none;border:1px solid var(--border-strong);background:var(--ground);color:var(--ink-2);
+    font:inherit;font-size:12.5px;font-weight:500;padding:7px 12px;border-radius:var(--radius-sm);cursor:pointer;
+    transition:background .16s ease,border-color .16s ease,color .16s ease}
+  .ghost-btn:hover{background:var(--surface);border-color:var(--faint);color:var(--ink)}
+
+  .grid{display:grid;grid-template-columns:minmax(0,372px) minmax(0,1fr);gap:26px;align-items:start}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--ground);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .panel-head{padding:16px 18px 14px;border-bottom:1px solid var(--border)}
+  .panel-head h2{font-size:17px}
+  .panel-head p{margin:4px 0 0;font-size:12.5px;color:var(--muted)}
+  .panel-body{padding:18px}
+  aside{position:sticky;top:calc(env(safe-area-inset-top,0px) + 84px)}
+  @media (max-width:900px){aside{position:static}}
+
+  label.field{display:block;margin-bottom:16px}
+  .field .lab{display:block;font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:6px}
+  .field .hint{font-size:11.5px;color:var(--muted);font-weight:400;margin-left:6px}
+  select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--surface);
+    border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:9px 11px;
+    transition:border-color .16s ease,background .16s ease,box-shadow .16s ease}
+  select:hover,textarea:hover{border-color:var(--faint)}
+  select:focus,textarea:focus{outline:none;border-color:var(--focus);
+    box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 22%,transparent);background:var(--ground)}
+  textarea{min-height:196px;resize:vertical;line-height:1.65;font-size:13px}
+  select{appearance:none;cursor:pointer;padding-right:34px;
+    background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+    background-position:calc(100% - 18px) 55%,calc(100% - 13px) 55%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+
+  .actions{display:flex;gap:10px}
+  .btn{appearance:none;border:1px solid transparent;font:inherit;font-weight:600;font-size:13px;
+    padding:10px 16px;border-radius:var(--radius-sm);cursor:pointer;
+    transition:background .16s ease,border-color .16s ease,transform .05s ease}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--accent);color:var(--accent-ink);flex:1}
+  .btn.primary:hover{background:color-mix(in srgb,var(--accent) 86%,#000)}
+  :root[data-theme="dark"] .btn.primary:hover,:root:not([data-theme="light"]) .btn.primary:hover{background:color-mix(in srgb,var(--accent) 86%,#fff)}
+  .btn.secondary{background:var(--ground);border-color:var(--border-strong);color:var(--ink-2)}
+  .btn.secondary:hover{background:var(--surface);border-color:var(--faint);color:var(--ink)}
+  .btn[disabled]{opacity:.55;cursor:progress}
+
+  .meta-row{margin-top:16px;padding-top:14px;border-top:1px solid var(--border);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .meta-row b{color:var(--ink-2);font-weight:600}
+
+  .results-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+  .results-head h2{font-size:20px}
+  .results-head .caption{font-size:12.5px;color:var(--muted);margin-top:3px}
+
+  .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  @media (max-width:640px){.summary{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 14px;position:relative;overflow:hidden}
+  .stat .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+  .stat .v{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:27px;font-weight:500;margin-top:6px;line-height:1}
+  .stat .u{font-size:11.5px;color:var(--muted);margin-top:5px}
+  .stat.accent-stripe::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
+  .stat.crit-stripe::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--crit)}
+
+  .table-wrap{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--ground);box-shadow:var(--shadow)}
+  .table-scroll{overflow-x:auto}
+  table.sched{width:100%;border-collapse:collapse;min-width:760px}
+  .table-cap{text-align:left;padding:13px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--ground)}
+  .table-cap b{color:var(--ink);font-weight:600;font-family:"Newsreader",serif;font-size:15px}
+  .src-badge{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:100px;border:1px solid var(--border-strong);color:var(--muted)}
+  .src-badge.api{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,var(--border))}
+  .hashtag{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--faint)}
+  thead th{text-align:left;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+    font-weight:600;padding:11px 14px;border-bottom:1px solid var(--border);background:var(--surface);white-space:nowrap}
+  thead th.num{text-align:right}
+  tbody tr.item{border-bottom:1px solid var(--border);transition:background .14s ease}
+  tbody tr.item:last-child{border-bottom:none}
+  tbody tr.item:hover{background:var(--surface)}
+  tbody td{padding:12px 14px;vertical-align:top}
+  td.rank{width:34px}
+  td.rank .r{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--faint);font-weight:500}
+  .item-name{font-weight:600;color:var(--ink);font-size:13.5px;max-width:34ch}
+  .item-sub{font-size:11.5px;color:var(--muted);margin-top:4px}
+  .stripe-cell{position:relative}
+  .stripe-cell::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:2px;background:var(--low)}
+  tr.urgent .stripe-cell::before{background:var(--crit)}
+  tr.review .stripe-cell::before{background:var(--faint)}
+
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:500;padding:3px 9px;
+    border-radius:100px;border:1px solid var(--border-strong);color:var(--ink-2);background:var(--ground);white-space:nowrap}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.03em;
+    padding:3px 9px 3px 8px;border-radius:100px;white-space:nowrap;text-transform:uppercase}
+  .pill .dot{width:6px;height:6px;border-radius:100px}
+  .pill.urgent{color:var(--crit);border:1px solid color-mix(in srgb,var(--crit) 40%,var(--border))}
+  .pill.urgent .dot{background:var(--crit)}
+  .pill.routine{color:var(--med);border:1px solid color-mix(in srgb,var(--med) 38%,var(--border))}
+  .pill.routine .dot{background:var(--med)}
+  .pill.review{color:var(--high);border:1px solid color-mix(in srgb,var(--high) 40%,var(--border))}
+  .pill.review .dot{background:var(--high)}
+
+  .rationale{font-size:12.5px;color:var(--ink-2);line-height:1.55;max-width:46ch}
+  .score-cell{text-align:right;white-space:nowrap}
+  .score-num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:16px;font-weight:600;color:var(--ink)}
+  .score-num.na{color:var(--faint);font-size:12px;font-weight:500}
+  .meter{height:4px;border-radius:100px;background:var(--surface-2);margin-top:6px;overflow:hidden;width:72px;margin-left:auto}
+  .meter i{display:block;height:100%;border-radius:100px;background:var(--med)}
+  tr.urgent .meter i{background:var(--crit)}
+
+  .expand-btn{appearance:none;background:transparent;border:1px solid var(--border);border-radius:var(--radius-sm);
+    color:var(--muted);cursor:pointer;font:inherit;font-size:11.5px;font-weight:500;padding:5px 10px;
+    display:inline-flex;align-items:center;gap:6px;transition:background .14s ease,color .14s ease,border-color .14s ease}
+  .expand-btn:hover{background:var(--surface);color:var(--ink);border-color:var(--faint)}
+  .expand-btn .caret{transition:transform .18s ease;font-size:9px}
+  .expand-btn[aria-expanded="true"] .caret{transform:rotate(90deg)}
+
+  tr.detail td{padding:0 14px 0 51px;background:var(--surface)}
+  .detail-inner{overflow:hidden;max-height:0;transition:max-height .24s ease}
+  tr.detail.open .detail-inner{max-height:440px}
+  .detail-pad{padding:16px 0 20px;display:grid;grid-template-columns:1.1fr 1fr;gap:20px 32px}
+  @media (max-width:640px){.detail-pad{grid-template-columns:1fr}}
+  .dk{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px}
+  .calc{display:flex;flex-direction:column;gap:7px}
+  .calc-row{display:grid;grid-template-columns:1fr auto;gap:14px;font-size:12.5px;align-items:baseline}
+  .calc-row .cl{color:var(--muted)}
+  .calc-row .cv{font-family:"IBM Plex Mono",monospace;color:var(--ink-2);font-variant-numeric:tabular-nums}
+  .calc-row.total{border-top:1px solid var(--border);padding-top:8px;margin-top:2px}
+  .calc-row.total .cl{color:var(--ink);font-weight:600}
+  .calc-row.total .cv{color:var(--ink);font-weight:600}
+  .kv{display:flex;flex-direction:column;gap:9px}
+  .kv .row{font-size:12.5px}
+  .kv .row .rk{color:var(--muted);margin-right:6px}
+  .kv .row .rv{color:var(--ink-2)}
+  .flagchip{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-2);
+    background:var(--ground);border:1px solid var(--border-strong);border-radius:4px;padding:1px 6px;margin:0 4px 4px 0}
+
+  .empty{padding:56px 24px;text-align:center;color:var(--muted)}
+  .empty h3{font-size:18px;color:var(--ink);margin-bottom:8px}
+  .empty p{max-width:44ch;margin:0 auto;font-size:13px}
+
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(8px);background:var(--ink);color:var(--ground);
+    font-size:12.5px;font-weight:500;padding:10px 16px;border-radius:100px;box-shadow:var(--shadow);opacity:0;pointer-events:none;
+    transition:opacity .2s ease,transform .2s ease;z-index:50}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .offline-note{border:1px solid color-mix(in srgb,var(--high) 45%,var(--border));
+    background:color-mix(in srgb,var(--high) 8%,var(--ground));color:var(--ink-2);
+    border-radius:var(--radius-sm);padding:11px 14px;font-size:12.5px;margin-bottom:18px;line-height:1.5}
+  .offline-note b{color:var(--ink);font-weight:600}
+  footer.note{margin-top:24px;font-size:11.5px;color:var(--muted);line-height:1.7;border-top:1px solid var(--border);padding-top:16px}
+  footer.note b{color:var(--ink-2);font-weight:600}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">TR</div>
+      <div>
+        <div class="name">Evidence Triage Console</div>
+        <div class="sub">Bob extracts &amp; classifies &middot; deterministic engine scores &amp; ranks</div>
+      </div>
+    </div>
+    <div class="top-right">
+      <span class="eyebrow" aria-hidden="true">NFSU &times; IBM &middot; Track 1 &middot; PS-03</span>
+      <button class="ghost-btn" id="themeBtn" type="button" aria-label="Toggle colour theme">Theme</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <aside>
+      <form class="panel" id="triageForm" novalidate>
+        <div class="panel-head">
+          <h2>Scene intake</h2>
+          <p>Enter the crime context and the recovered items &mdash; one per line.</p>
+        </div>
+        <div class="panel-body">
+          <label class="field" for="crimeType">
+            <span class="lab">Crime type</span>
+            <select id="crimeType" name="crimeType">
+              <option value="homicide">Homicide / Murder</option>
+              <option value="sexual_assault">Sexual assault</option>
+              <option value="burglary">Burglary / Theft</option>
+              <option value="assault">Assault / Grievous hurt</option>
+              <option value="arson">Arson / Fire</option>
+              <option value="narcotics">Narcotics / Drugs</option>
+              <option value="hit_and_run">Hit-and-run / Vehicular</option>
+              <option value="cyber">Cyber / Financial</option>
+              <option value="unknown">Unknown / Mixed</option>
+            </select>
+          </label>
+          <label class="field" for="items">
+            <span class="lab">Recovered items <span class="hint">one per line</span></span>
+            <textarea id="items" name="items" spellcheck="false"></textarea>
+          </label>
+          <div class="actions">
+            <button class="btn primary" type="submit" id="runBtn">Run triage</button>
+            <button class="btn secondary" type="button" id="sampleBtn">Load case</button>
+          </div>
+          <div class="meta-row">
+            <b>Reference case:</b> 2019 Hyderabad homicide &mdash; 3,000+ photographs and 200+ items; a DNA-bearing cigarette butt was nearly missed on the first sweep. The console ranks what the FSL should examine first.
+          </div>
+        </div>
+      </form>
+    </aside>
+
+    <section aria-live="polite">
+      <div class="results-head">
+        <div>
+          <h2>Examination schedule</h2>
+          <div class="caption">Urgent items first, then by forensic priority score &mdash; ready for FSL submission.</div>
+        </div>
+        <button class="ghost-btn" type="button" id="copyBtn">Copy schedule</button>
+      </div>
+
+      <div class="offline-note" id="offlineNote" hidden>
+        <b>Preview mode &mdash; backend not connected.</b> These results come from an in-browser mirror of the engine, <b>not the audited Python scorer</b>, and nothing is logged. Start the API (<span class="mono">python run.py</span>) for authoritative, logged results.
+      </div>
+
+      <div class="summary" id="summary" hidden>
+        <div class="stat accent-stripe"><div class="k">Items triaged</div><div class="v mono" id="s-total">0</div><div class="u" id="s-cats">across 0 categories</div></div>
+        <div class="stat crit-stripe"><div class="k">Urgent testing</div><div class="v mono" id="s-urgent">0</div><div class="u">time-sensitive handling</div></div>
+        <div class="stat"><div class="k">Manual review</div><div class="v mono" id="s-review">0</div><div class="u">unresolved by extractor</div></div>
+        <div class="stat"><div class="k">Ruleset</div><div class="v mono" id="s-rules" style="font-size:15px;padding-top:7px">v1.1.1</div><div class="u mono" id="s-hash">&mdash;</div></div>
+      </div>
+
+      <div class="table-wrap" id="tableWrap" hidden>
+        <div class="table-cap">
+          <b>FSL Examination Priority Schedule</b>
+          <span class="src-badge" id="srcBadge">engine</span>
+          <span class="hashtag" id="capHash"></span>
+        </div>
+        <div class="table-scroll">
+          <table class="sched" id="sched">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Item &amp; category</th>
+                <th scope="col">Status</th>
+                <th scope="col">Why (deterministic rationale)</th>
+                <th scope="col" class="num">Score</th>
+                <th scope="col"><span class="sr">Scoring breakdown</span></th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="empty" id="empty" hidden>
+        <h3 id="emptyTitle">No items yet</h3>
+        <p id="emptyMsg">Load the reference case or list the items recovered from the scene, then run triage.</p>
+      </div>
+
+      <footer class="note">
+        <b>Division of responsibility.</b> The language model (IBM&nbsp;Bob / watsonx&nbsp;Granite) only reads the free text and returns structured, classified items. It never assigns a number. The <b>priority score, ranking and urgent/non-urgent decision are computed entirely in deterministic Python</b> &mdash; the same input and the same ruleset version always produce the identical schedule, stamped with the ruleset&rsquo;s SHA-256 hash for court traceability. This page calls the <span class="mono">/triage</span> API when the server is running, and otherwise falls back to an in-browser mirror of the same engine and ruleset. <b>Decision-support only</b> &mdash; it does not replace the examiner or the chain of custody.
+      </footer>
+    </section>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="application/json" id="engine-mirror">
+{
+ "rules": {
+  "version": "1.1.1",
+  "version_hash": "6ee54cf477fcec1e0c7aa5bb958da93ab1cbe7a9dab3d3e61217d4b66792cbad",
+  "category_base_weights": {
+   "biological": 9.0,
+   "digital": 8.0,
+   "toxicological": 8.0,
+   "ballistic": 7.0,
+   "pattern": 6.0,
+   "trace": 5.0,
+   "documentary": 4.0,
+   "other": 2.0
+  },
+  "crime_type_multipliers": {
+   "homicide": {
+    "biological": 1.5,
+    "digital": 1.2,
+    "toxicological": 1.4,
+    "ballistic": 1.3,
+    "pattern": 1.1
+   },
+   "sexual_assault": {
+    "biological": 1.5,
+    "trace": 1.2,
+    "digital": 1.2,
+    "documentary": 1.1
+   },
+   "burglary": {
+    "digital": 1.3,
+    "pattern": 1.4,
+    "trace": 1.1,
+    "documentary": 1.2
+   },
+   "assault": {
+    "biological": 1.3,
+    "ballistic": 1.2,
+    "pattern": 1.1
+   },
+   "arson": {
+    "toxicological": 1.5,
+    "trace": 1.3,
+    "digital": 1.1
+   },
+   "narcotics": {
+    "toxicological": 1.5,
+    "digital": 1.2,
+    "documentary": 1.2
+   },
+   "hit_and_run": {
+    "trace": 1.5,
+    "pattern": 1.3,
+    "biological": 1.2
+   },
+   "cyber": {
+    "digital": 1.5,
+    "documentary": 1.3
+   }
+  },
+  "degradation_risk_by_condition": {
+   "degraded": 9.0,
+   "partially_exposed": 7.0,
+   "intact": 2.0
+  },
+  "condition_normalization": {
+   "intact": "intact",
+   "undamaged": "intact",
+   "sealed": "intact",
+   "pristine": "intact",
+   "dry": "intact",
+   "preserved": "intact",
+   "degraded": "degraded",
+   "degrading": "degraded",
+   "wet": "degraded",
+   "damp": "degraded",
+   "moist": "degraded",
+   "soaked": "degraded",
+   "waterlogged": "degraded",
+   "bloody": "degraded",
+   "bloodstained": "degraded",
+   "decomposed": "degraded",
+   "decomposing": "degraded",
+   "rotting": "degraded",
+   "putrefied": "degraded",
+   "burnt": "degraded",
+   "burned": "degraded",
+   "charred": "degraded",
+   "scorched": "degraded",
+   "singed": "degraded",
+   "smeared": "degraded",
+   "contaminated": "degraded",
+   "mouldy": "degraded",
+   "moldy": "degraded",
+   "corroded": "degraded",
+   "damaged": "degraded",
+   "partially_exposed": "partially_exposed",
+   "partly_exposed": "partially_exposed",
+   "exposed": "partially_exposed",
+   "weathered": "partially_exposed",
+   "broken": "partially_exposed",
+   "cracked": "partially_exposed",
+   "chipped": "partially_exposed",
+   "torn": "partially_exposed",
+   "open": "partially_exposed",
+   "half_buried": "partially_exposed",
+   "buried": "partially_exposed",
+   "dirty": "partially_exposed",
+   "muddy": "partially_exposed",
+   "faded": "partially_exposed"
+  },
+  "default_condition": "partially_exposed",
+  "context_flag_modifiers": {
+   "near_body": 3.0,
+   "exposed_to_weather": 4.0,
+   "signs_of_tampering": 5.0,
+   "electronic_device": 3.0,
+   "chain_of_custody_break": 6.0,
+   "biological_material": 0.0
+  },
+  "score_urgent": 30.0,
+  "force_urgent_flags": [
+   "electronic_device",
+   "exposed_to_weather",
+   "biological_material"
+  ]
+ },
+ "category_keywords": [
+  [
+   "pattern",
+   [
+    "fingerprint",
+    "finger print",
+    "latent",
+    "palm print",
+    "footwear",
+    "shoe print",
+    "foot impression",
+    "tyre",
+    "tire",
+    "tool mark",
+    "toolmark",
+    "glove mark",
+    "impression"
+   ]
+  ],
+  [
+   "biological",
+   [
+    "blood",
+    "bloodstain",
+    "bloody",
+    "dna",
+    "semen",
+    "saliva",
+    "cigarette",
+    "butt",
+    "hair",
+    "tissue",
+    "swab",
+    "buccal",
+    "vomit",
+    "urine",
+    "fingernail",
+    "nail clipping",
+    "sanitary",
+    "tampon",
+    "bone",
+    "flesh",
+    "skin"
+   ]
+  ],
+  [
+   "ballistic",
+   [
+    "firearm",
+    "pistol",
+    "revolver",
+    "rifle",
+    "shotgun",
+    "gun",
+    "cartridge",
+    "bullet",
+    "shell",
+    "casing",
+    "spent round",
+    "gsr",
+    "gunshot residue"
+   ]
+  ],
+  [
+   "digital",
+   [
+    "smartphone",
+    "phone",
+    "cellphone",
+    "cell phone",
+    "iphone",
+    "mobile",
+    "laptop",
+    "computer",
+    "hard disk",
+    "hard drive",
+    "hdd",
+    "ssd",
+    "usb",
+    "pen drive",
+    "pendrive",
+    "sim",
+    "memory card",
+    "sd card",
+    "dvr",
+    "cctv",
+    "camera",
+    "tablet computer",
+    "ipad",
+    "router",
+    "drone"
+   ]
+  ],
+  [
+   "toxicological",
+   [
+    "powder",
+    "tablet",
+    "pill",
+    "capsule",
+    "drug",
+    "narcotic",
+    "heroin",
+    "cocaine",
+    "ganja",
+    "cannabis",
+    "charas",
+    "syringe",
+    "injection",
+    "poison",
+    "pesticide",
+    "liquor",
+    "alcohol",
+    "whisky",
+    "vial",
+    "chemical",
+    "petrol",
+    "diesel",
+    "kerosene",
+    "accelerant"
+   ]
+  ],
+  [
+   "documentary",
+   [
+    "document",
+    "letter",
+    "note",
+    "cheque",
+    "currency",
+    "banknote",
+    "diary",
+    "ledger",
+    "last will",
+    "passport",
+    "id card",
+    "certificate",
+    "handwriting",
+    "signature",
+    "forged"
+   ]
+  ],
+  [
+   "trace",
+   [
+    "fibre",
+    "fiber",
+    "glass",
+    "paint",
+    "soil",
+    "mud",
+    "dust",
+    "rope",
+    "thread",
+    "button",
+    "sand",
+    "pollen",
+    "tape",
+    "wire",
+    "fragment",
+    "burnt",
+    "charred",
+    "matchstick",
+    "match",
+    "soot",
+    "ash",
+    "knife",
+    "blade",
+    "dagger",
+    "machete",
+    "axe",
+    "sickle",
+    "hammer",
+    "iron rod",
+    "screwdriver"
+   ]
+  ]
+ ],
+ "condition_rules": [
+  [
+   "degraded",
+   [
+    "wet",
+    "damp",
+    "moist",
+    "soaked",
+    "waterlogged",
+    "burnt",
+    "burned",
+    "charred",
+    "scorched",
+    "decomposing",
+    "decomposed",
+    "rotting",
+    "putrefied",
+    "bloody",
+    "bloodstained",
+    "corroded",
+    "mouldy",
+    "moldy",
+    "smeared"
+   ]
+  ],
+  [
+   "partially_exposed",
+   [
+    "cracked",
+    "broken",
+    "open",
+    "exposed",
+    "torn",
+    "chipped",
+    "partially",
+    "weathered",
+    "dirty",
+    "muddy",
+    "buried"
+   ]
+  ]
+ ],
+ "flag_rules": [
+  [
+   "near_body",
+   [
+    "near the body",
+    "on the body",
+    "beside the body",
+    "by the body",
+    "under the body",
+    "on the victim",
+    "the victim",
+    "corpse",
+    "deceased"
+   ]
+  ],
+  [
+   "exposed_to_weather",
+   [
+    "wet",
+    "damp",
+    "moist",
+    "rain",
+    "outdoor",
+    "outdoors",
+    "open ground",
+    "in the open",
+    "backyard",
+    "field",
+    "weathered",
+    "waterlogged"
+   ]
+  ],
+  [
+   "signs_of_tampering",
+   [
+    "tampered",
+    "tamper",
+    "altered",
+    "forged",
+    "broken seal",
+    "wiped clean",
+    "staged"
+   ]
+  ],
+  [
+   "chain_of_custody_break",
+   [
+    "unsealed",
+    "mislabelled",
+    "mislabeled",
+    "unlabelled",
+    "no seal",
+    "custody break",
+    "broken chain"
+   ]
+  ]
+ ]
+}
+</script>
+<script>
+/* ===========================================================================
+   OFFLINE MIRROR of the deterministic engine (src/app/scoring.py + rules_v1.yaml).
+   Used only when the FastAPI server cannot be reached (static demo).
+   The data comes from the JSON block above, which is GENERATED from rules_v1.yaml
+   and app/llm_client.py by `python sync_web_mirror.py` — never edit it by hand.
+   tests/test_web_mirror.py fails if it is out of date. The API stays authoritative.
+   =========================================================================== */
+const MIRROR = JSON.parse(document.getElementById("engine-mirror").textContent);
+const RULES = MIRROR.rules;
+const CAT_KEYWORDS = MIRROR.category_keywords;
+const COND_RULES = MIRROR.condition_rules;
+const FLAG_RULES = MIRROR.flag_rules;
+function wordIn(low,w){ return new RegExp("\\b"+w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(?:s|es|ed|ing)?\\b").test(low); }
+
+const CAT = {
+  biological:{label:"Biological / DNA",div:"Biology & DNA Division"},
+  ballistic:{label:"Ballistic",div:"Ballistics Division"},
+  pattern:{label:"Pattern / Impression",div:"Fingerprint & Physics Division"},
+  digital:{label:"Digital / Electronic",div:"Cyber Forensics Division"},
+  toxicological:{label:"Toxicological / Chemical",div:"Toxicology & Chemistry Division"},
+  trace:{label:"Trace / Physical",div:"Physics & Trace Division"},
+  documentary:{label:"Documentary",div:"Questioned Documents Division"},
+  other:{label:"Uncategorized",div:"General Examination"},
+  review:{label:"Manual review",div:"Examiner triage"}
+};
+
+function round2(x){ return Math.sign(x)*Math.round(Math.abs(x)*100)/100; }
+function splitLines(t){ return t.split(/[\n;]+/).map(l=>l.replace(/^\s*(?:\d+[.)]|[-*•])\s*/,"").replace(/^[A-Za-z ]{3,30}scene:\s*/i,"").trim()).filter(Boolean); }
+function normCondition(c){
+  if(!c) return RULES.default_condition;
+  const k=c.trim().toLowerCase().replace(/-/g,"_").replace(/\s+/g,"_");
+  if(k in RULES.condition_normalization) return RULES.condition_normalization[k];
+  if(k in RULES.degradation_risk_by_condition) return k;
+  return RULES.default_condition;
+}
+function offlineClassify(line,id){
+  const low=line.toLowerCase();
+  let cat="other",hits=0;
+  for(const [c,words] of CAT_KEYWORDS){const h=words.reduce((n,w)=>n+(wordIn(low,w)?1:0),0);if(h>hits){hits=h;cat=c;}}
+  let condition="intact";
+  for(const [cond,words] of COND_RULES){if(words.some(w=>wordIn(low,w))){condition=cond;break;}}
+  const flags=[];
+  for(const [f,words] of FLAG_RULES){if(words.some(w=>wordIn(low,w)))flags.push(f);}
+  if(cat==="digital"&&!flags.includes("electronic_device"))flags.push("electronic_device");
+  if(cat==="biological"&&!flags.includes("biological_material"))flags.push("biological_material");
+  const m=line.match(/\b(?:near|on|in|under|beside|at|by)\b\s+([^,;.]{3,40})/i);
+  return {item_id:id,item_name:line,category:cat,location_found:m?m[1].trim().replace(/\.$/,""):"unspecified",
+    condition,context_flags:flags,confidence:0.9,needs_manual_review:false};
+}
+function offlineScore(item,crime){
+  const cat=item.category;
+  const base=RULES.category_base_weights[cat] ?? RULES.category_base_weights.other;
+  const mult=(RULES.crime_type_multipliers[crime]||{})[cat] ?? 1.0;
+  const condKey=normCondition(item.condition);
+  const degradation=RULES.degradation_risk_by_condition[condKey] ?? RULES.degradation_risk_by_condition[RULES.default_condition];
+  const uniqFlags=[...new Set(item.context_flags)];   // de-dupe: a repeated flag counts once
+  const flagBonus=uniqFlags.reduce((n,f)=>n+(RULES.context_flag_modifiers[f]??0),0);
+  const raw=base*mult+degradation+flagBonus;
+  const final=round2(Math.max(0,Math.min(raw,100)));
+  const forced=uniqFlags.some(f=>RULES.force_urgent_flags.includes(f));
+  const urgency=final>=RULES.score_urgent||forced;
+  const reason=urgency?(forced?" Forced urgent by flag(s): "+item.context_flags.filter(f=>RULES.force_urgent_flags.includes(f)).join(", ")+".":" Score ≥ "+RULES.score_urgent+" threshold."):"";
+  return {rank:null,item,final_score:final,
+    breakdown:{base:round2(base),multiplier:round2(mult),degradation:round2(degradation),flag_bonus:round2(flagBonus),raw_score:round2(raw)},
+    urgency_flag:urgency,needs_manual_review:false,rules_version:RULES.version,rules_version_hash:RULES.version_hash,
+    rationale:`${cat} in a ${crime} case: ${round2(base)} base × ${round2(mult)} multiplier + ${round2(degradation)} (${condKey}) + ${round2(flagBonus)} context flags = ${final}.${reason}`};
+}
+function offlineTriage(text,crime){
+  const scored=splitLines(text).map((l,i)=>offlineScore(offlineClassify(l,i),crime));
+  scored.sort((a,b)=>(a.urgency_flag===b.urgency_flag?0:(a.urgency_flag?-1:1))
+    || ((b.final_score??-1)-(a.final_score??-1)) || (a.item.item_id-b.item.item_id));
+  scored.forEach((s,i)=>s.rank=i+1);
+  return {schedule:scored,rules_version:RULES.version,rules_version_hash:RULES.version_hash,source:"offline"};
+}
+
+/* =========================== UI =========================== */
+const $=s=>document.querySelector(s);
+const API_BASE=location.origin.startsWith("http")?location.origin:"http://127.0.0.1:8000";
+const SAMPLE=[
+  "Cigarette butt recovered near the compound gate",
+  "Bloodstained kitchen knife beside the body",
+  "Wet, partially burnt t-shirt in the backyard",
+  "Locked smartphone, screen cracked, powered on, near the sofa",
+  "Empty liquor bottle with visible fingerprints",
+  "Tyre impression on the service road",
+  "Single strand of hair on the victim's collar",
+  "CCTV DVR unit from the front gate"
+].join("\n");
+let currentResults=[];
+
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function catInfo(c){return CAT[c]||CAT.other;}
+
+const EMPTY_TITLE=$("#emptyTitle").textContent, EMPTY_MSG=$("#emptyMsg").textContent;
+function renderError(msg){
+  render({schedule:[]});
+  $("#emptyTitle").textContent="Triage failed on the server";
+  $("#emptyMsg").textContent=msg;
+}
+function render(res){
+  $("#emptyTitle").textContent=EMPTY_TITLE; $("#emptyMsg").textContent=EMPTY_MSG;
+  const schedule=res.schedule||[];
+  currentResults=schedule;
+  const show=schedule.length>0;
+  $("#tableWrap").hidden=!show; $("#summary").hidden=!show; $("#empty").hidden=show;
+  $("#offlineNote").hidden = !show || res.source==="api";
+  if(!show)return;
+
+  const urgent=schedule.filter(s=>s.urgency_flag).length;
+  const review=schedule.filter(s=>s.needs_manual_review).length;
+  const cats=new Set(schedule.filter(s=>!s.needs_manual_review).map(s=>s.item.category));
+  $("#s-total").textContent=schedule.length;
+  $("#s-cats").textContent="across "+cats.size+" categor"+(cats.size===1?"y":"ies");
+  $("#s-urgent").textContent=urgent;
+  $("#s-review").textContent=review;
+  $("#s-rules").textContent="v"+(res.rules_version||"1.1.1");
+  $("#s-hash").textContent=(res.rules_version_hash||"").slice(0,12);
+  const badge=$("#srcBadge");
+  badge.textContent=res.source==="api"?"live API":"offline mirror";
+  badge.className="src-badge"+(res.source==="api"?" api":"");
+  $("#capHash").textContent="ruleset "+(res.rules_version_hash||"").slice(0,16);
+
+  const maxScore=Math.max(...schedule.map(s=>s.final_score||0),1);
+  const tbody=$("#tbody"); tbody.innerHTML="";
+  schedule.forEach((s,i)=>{
+    const rev=s.needs_manual_review;
+    const ci=catInfo(rev?"review":s.item.category);
+    const tr=document.createElement("tr");
+    tr.className="item"+(rev?" review":(s.urgency_flag?" urgent":""));
+    const statusPill=rev?`<span class="pill review"><span class="dot"></span>Review</span>`
+      :(s.urgency_flag?`<span class="pill urgent"><span class="dot"></span>Urgent</span>`
+        :`<span class="pill routine"><span class="dot"></span>Routine</span>`);
+    const scoreCell=rev?`<div class="score-num na">n/a</div>`
+      :`<div class="score-num">${s.final_score}</div><div class="meter"><i style="width:${Math.round((s.final_score/maxScore)*100)}%"></i></div>`;
+    tr.innerHTML=`
+      <td class="rank stripe-cell"><span class="r">${String(i+1).padStart(2,"0")}</span></td>
+      <td><div class="item-name">${esc(s.item.item_name)}</div>
+          <div class="item-sub"><span class="chip">${esc(ci.label)}</span></div></td>
+      <td>${statusPill}<div class="item-sub" style="margin-top:6px">${esc(ci.div)}</div></td>
+      <td><div class="rationale">${esc(s.rationale||(rev?"Extractor could not validate this item; routed to a human examiner rather than guessing.":""))}</div></td>
+      <td class="score-cell">${scoreCell}</td>
+      <td style="text-align:right"><button class="expand-btn" type="button" aria-expanded="false" aria-controls="d${i}"><span class="caret" aria-hidden="true">&#9654;</span>Breakdown</button></td>`;
+    tbody.appendChild(tr);
+
+    const bd=s.breakdown;
+    const dr=document.createElement("tr");
+    dr.className="detail";
+    dr.innerHTML=`<td colspan="6" id="d${i}"><div class="detail-inner"><div class="detail-pad">
+      <div>
+        <div class="dk">Score computation</div>
+        ${bd?`<div class="calc">
+          <div class="calc-row"><span class="cl">Category base (${esc(s.item.category)})</span><span class="cv">${bd.base}</span></div>
+          <div class="calc-row"><span class="cl">Crime-type multiplier (&times;)</span><span class="cv">&times; ${bd.multiplier}</span></div>
+          <div class="calc-row"><span class="cl">Degradation (${esc(normLabel(s.item.condition))})</span><span class="cv">+ ${bd.degradation}</span></div>
+          <div class="calc-row"><span class="cl">Context-flag bonus</span><span class="cv">+ ${bd.flag_bonus}</span></div>
+          <div class="calc-row"><span class="cl">Raw score (pre-clamp)</span><span class="cv">${bd.raw_score}</span></div>
+          <div class="calc-row total"><span class="cl">Final score (0&ndash;100)</span><span class="cv">${s.final_score}</span></div>
+        </div>`:`<div class="rationale">No score &mdash; item flagged for manual review; the deterministic engine is never fed unvalidated data.</div>`}
+      </div>
+      <div>
+        <div class="dk">Extracted attributes ${res.source!=="api"?"(in-browser mirror)":(res.extractor&&res.extractor.indexOf("watsonx")>=0?"(from Bob / watsonx Granite)":"(offline extractor)")}</div>
+        <div class="kv">
+          <div class="row"><span class="rk">Location</span><span class="rv">${esc(s.item.location_found||"—")}</span></div>
+          <div class="row"><span class="rk">Condition</span><span class="rv">${esc(s.item.condition||"—")}</span></div>
+          <div class="row"><span class="rk">Confidence</span><span class="rv mono">${s.item.confidence!=null?s.item.confidence:"—"}</span></div>
+          <div class="row"><span class="rk">Context flags</span><span class="rv">${(s.item.context_flags&&s.item.context_flags.length)?s.item.context_flags.map(f=>`<span class="flagchip">${esc(f)}</span>`).join(""):"none"}</span></div>
+          <div class="row"><span class="rk">Urgency</span><span class="rv">${s.urgency_flag?"URGENT":"routine"} &middot; ${rev?"n/a":"boolean OR, independent of score"}</span></div>
+          <div class="row"><span class="rk">Ruleset hash</span><span class="rv mono">${esc((s.rules_version_hash||"").slice(0,24))}</span></div>
+        </div>
+      </div>
+    </div></div></td>`;
+    tbody.appendChild(dr);
+    tr.querySelector(".expand-btn").addEventListener("click",e=>{
+      const open=dr.classList.toggle("open");
+      e.currentTarget.setAttribute("aria-expanded",String(open));
+    });
+  });
+}
+function normLabel(c){ return normCondition(c); }
+
+async function run(){
+  const raw=$("#items").value, crime=$("#crimeType").value;
+  if(!raw.trim()){ render({schedule:[]}); return; }
+  const btn=$("#runBtn"); btn.disabled=true; btn.textContent="Running…";
+  let r;
+  try{
+    r=await fetch(API_BASE+"/triage",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({raw_text:raw,crime_type:crime})});
+  }catch(err){
+    // Server unreachable (static demo) -> in-browser mirror, clearly labelled.
+    render(offlineTriage(raw,crime));
+    btn.disabled=false; btn.textContent="Run triage";
+    return;
+  }
+  try{
+    if(!r.ok){
+      // The server IS running but refused or failed: show that, never mask it
+      // with mirror results that look like a real run.
+      let detail="HTTP "+r.status;
+      try{const b=await r.json(); if(b&&b.detail) detail+=" \u2014 "+(typeof b.detail==="string"?b.detail:JSON.stringify(b.detail));}catch(e){}
+      renderError(detail);
+      return;
+    }
+    const data=await r.json(); data.source="api"; render(data);
+  }catch(err){
+    renderError("Unreadable response from the server: "+err.message);
+  }finally{
+    btn.disabled=false; btn.textContent="Run triage";
+  }
+}
+
+function toast(m){const el=$("#toast");el.textContent=m;el.classList.add("show");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("show"),2200);}
+
+$("#triageForm").addEventListener("submit",e=>{e.preventDefault();run();});
+$("#sampleBtn").addEventListener("click",()=>{$("#items").value=SAMPLE;$("#crimeType").value="homicide";run();});
+$("#copyBtn").addEventListener("click",async()=>{
+  if(!currentResults.length){toast("Nothing to copy — run triage first.");return;}
+  const header="Rank\tItem\tCategory\tStatus\tScore\tRationale";
+  const rows=currentResults.map((s,i)=>`${i+1}\t${s.item.item_name}\t${s.needs_manual_review?"review":s.item.category}\t${s.needs_manual_review?"MANUAL_REVIEW":(s.urgency_flag?"URGENT":"routine")}\t${s.final_score??"n/a"}\t${(s.rationale||"").replace(/\t/g," ")}`);
+  try{ await navigator.clipboard.writeText("FSL Examination Priority Schedule\n"+header+"\n"+rows.join("\n")); toast("Schedule copied to clipboard"); }
+  catch(e){ toast("Copy blocked by the browser"); }
+});
+
+const themeBtn=$("#themeBtn");
+function applyTheme(m){ if(m==="dark"||m==="light")document.documentElement.setAttribute("data-theme",m); else document.documentElement.removeAttribute("data-theme"); }
+try{const sv=localStorage.getItem("triage-theme");if(sv)applyTheme(sv);}catch(e){}
+themeBtn.addEventListener("click",()=>{
+  const cur=document.documentElement.getAttribute("data-theme");
+  const isDark=cur==="dark"||(!cur&&matchMedia("(prefers-color-scheme:dark)").matches);
+  const next=isDark?"light":"dark"; applyTheme(next);
+  try{localStorage.setItem("triage-theme",next);}catch(e){}
+});
+
+$("#items").value=SAMPLE;
+run();
+</script>

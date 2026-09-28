@@ -1,0 +1,5 @@
+# Replace the line below with a real 3–5 minute video URL (YouTube unlisted,
+# Loom, Box, or Google Drive with "anyone with the link" view access).
+# The video should show: the app starting, an investigator running triage on a
+# real item list, the ranked schedule appearing, and a score breakdown expanded.
+TODO_REPLACE_WITH_YOUR_VIDEO_URL

@@ -1,0 +1,52 @@
+# Faithful stand-in for the hackathon's "Validate Submission" action.
+# If you created this repo from the OFFICIAL template, keep the template's
+# validate.yml instead of this one.
+name: Validate Submission
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check required files exist
+        run: |
+          test -f submission.yaml
+          test -f README.md
+          test -f docs/setup-guide.md
+          test -f demo/demo-video-link.txt
+
+      - name: Validate submission.yaml
+        run: |
+          python - <<'PY'
+          import sys, yaml
+          data = yaml.safe_load(open("submission.yaml"))
+          def need(v, path):
+              if v is None or (isinstance(v, str) and not v.strip()):
+                  print(f"::error::empty required field: {path}"); sys.exit(1)
+          t, s = data["team"], data["submission"]
+          need(t["name"], "team.name")
+          need(t["track"], "team.track")
+          need(t["lead"]["name"], "team.lead.name")
+          need(t["lead"]["email"], "team.lead.email")
+          need(s["title"], "submission.title")
+          need(s["problem_statement"], "submission.problem_statement")
+          need(s["solution_summary"], "submission.solution_summary")
+          if not s.get("key_features"):
+              print("::error::key_features is empty"); sys.exit(1)
+          print("submission.yaml OK")
+          PY
+
+      - name: Install and test the engine
+        working-directory: src
+        run: |
+          pip install -r requirements.txt
+          pytest -q

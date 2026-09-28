@@ -1,0 +1,55 @@
+# =============================================================================
+#  submission.yaml — READ BY EVALUATORS FIRST. Fill every field below.
+#  Do not rename this file. Blank REQUIRED fields fail automated validation.
+# =============================================================================
+team:
+  name: "REAVER"                                 # REQUIRED
+  track: "AI"                                    # REQUIRED — one of: AI | DevOps | Sustainability | Open
+  problem_track: "Track 1 · Forensic Science · PS-03"   # the problem-statement track (for reference)
+  lead:
+    name: "Sarthak Singh"                        # REQUIRED
+    email: "sarthak1036@gmail.com"               # REQUIRED
+  members:
+    - name: "Dular Bewal"
+      email: "dular.btmtcs1242931@nfsu.ac.in"
+    - name: "Rishi Bhardwaj"
+      email: "rishi.btmtcs1242928@nfsu.ac.in"
+    - name: "Krisha Jogi"
+      email: "krisha.btmtcs1242909@nfsu.ac.in"
+
+submission:
+  title: "Evidence Triage Console — AI-Assisted Crime Scene Evidence Prioritization"   # REQUIRED
+  problem_statement: >                            # REQUIRED
+    Major crime scenes generate hundreds of physical items and thousands of
+    photographs (e.g. the 2019 Hyderabad homicide: 3,000+ photos, 200+ items).
+    Without triage, high-probative or perishable evidence — a DNA-bearing
+    cigarette butt, a wet bloodstained garment — is missed on the first sweep,
+    and overloaded Forensic Science Laboratories delay testing by weeks.
+  solution_summary: >                            # REQUIRED
+    An investigator lists recovered items in plain language. IBM Bob (watsonx.ai
+    Granite) extracts and classifies each item into a fixed 8-category evidence
+    taxonomy — and nothing more. A deterministic Python engine then scores each
+    item (crime-type relevance x category weight + degradation risk + context
+    flags), decides urgency by an independent boolean rule, and ranks everything
+    into an FSL examination schedule. Every result is stamped with the SHA-256
+    hash of the versioned ruleset, so any schedule is exactly reproducible and
+    court-traceable.
+  key_features:                                  # REQUIRED (3–5)
+    - "Bob / watsonx Granite extracts & classifies free text — the LLM never assigns a score, rank, or urgency."
+    - "Pure-Python scoring engine (Decimal, ROUND_HALF_UP): identical input yields byte-identical output, proven by zero-tolerance tests."
+    - "Every result carries the SHA-256 hash of rules_v1.yaml — the single, versioned source of truth — for court-grade traceability."
+    - "Urgency is a boolean OR computed independently of the score, so a low-scoring but perishable/volatile item is never buried."
+    - "SQLite audit log replays any past run without re-invoking the model; an MCP server lets Bob drive the whole pipeline conversationally."
+
+  tech_stack:
+    - "Python 3.11+, FastAPI, Pydantic v2 (strict)"
+    - "IBM watsonx.ai (Granite) via ibm-watsonx-ai; Model Context Protocol (MCP) server for IBM Bob"
+    - "SQLite audit log; pytest regression suite"
+    - "Single-page HTML/JS console (Inter / Newsreader / IBM Plex Mono)"
+
+  ibm_bob_integration: >
+    Bob is the natural-language front-end and the extraction engine. In the MCP
+    integration, an investigator talks to Bob; Bob calls the `extract_evidence`
+    tool (LLM) and then the `score_evidence` tool (pure, deterministic Python).
+    The tool boundary enforces the core design rule: Bob structures the data,
+    the deterministic engine decides the priority.

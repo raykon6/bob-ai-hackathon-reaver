@@ -1,0 +1,144 @@
+# =============================================================================
+#  rules_v1.yaml  —  SINGLE SOURCE OF TRUTH for the scoring engine.
+#  Nothing in the scoring logic is hardcoded; every parameter lives here.
+#  The file is SHA-256 hashed at startup (after normalizing line endings to LF,
+#  so Windows and Unix checkouts agree) and that hash is stamped onto every
+#  ScoredItem, so any past result can be traced to the exact ruleset.
+#  Bump `version` AND change content whenever you edit this file.
+# =============================================================================
+version: "1.1.1"
+
+# Base probative weight per evidence category (0-10 scale).
+category_base_weights:
+  biological: 9
+  digital: 8
+  toxicological: 8
+  ballistic: 7
+  pattern: 6
+  trace: 5
+  documentary: 4
+  other: 2
+
+# Crime-type-specific multipliers applied to the category base weight.
+# Any (crime_type, category) pair not listed defaults to multiplier 1.0.
+crime_type_multipliers:
+  homicide:
+    biological: 1.5
+    digital: 1.2
+    toxicological: 1.4
+    ballistic: 1.3
+    pattern: 1.1
+  sexual_assault:
+    biological: 1.5
+    trace: 1.2
+    digital: 1.2
+    documentary: 1.1
+  burglary:
+    digital: 1.3
+    pattern: 1.4
+    trace: 1.1
+    documentary: 1.2
+  assault:
+    biological: 1.3
+    ballistic: 1.2
+    pattern: 1.1
+  arson:
+    toxicological: 1.5
+    trace: 1.3
+    digital: 1.1
+  narcotics:
+    toxicological: 1.5
+    digital: 1.2
+    documentary: 1.2
+  hit_and_run:
+    trace: 1.5
+    pattern: 1.3
+    biological: 1.2
+  cyber:
+    digital: 1.5
+    documentary: 1.3
+
+# Degradation-risk points added by physical condition.
+degradation_risk_by_condition:
+  degraded: 9
+  partially_exposed: 7
+  intact: 2
+
+# Bob returns free-text `condition`; this maps common surface forms onto the
+# three canonical keys above. Lookup is case-insensitive; spaces/hyphens are
+# normalized to underscores before matching. Unmatched conditions fall back to
+# `default_condition`. (ASSUMPTION — see docs/solution-overview.md.)
+condition_normalization:
+  # pristine / well-preserved -> lowest degradation risk
+  intact: intact
+  undamaged: intact
+  sealed: intact
+  pristine: intact
+  dry: intact
+  preserved: intact
+  # actively degrading / perishable -> highest degradation risk
+  degraded: degraded
+  degrading: degraded
+  wet: degraded
+  damp: degraded
+  moist: degraded
+  soaked: degraded
+  waterlogged: degraded
+  bloody: degraded
+  bloodstained: degraded
+  decomposed: degraded
+  decomposing: degraded
+  rotting: degraded
+  putrefied: degraded
+  burnt: degraded
+  burned: degraded
+  charred: degraded
+  scorched: degraded
+  singed: degraded
+  smeared: degraded
+  contaminated: degraded
+  mouldy: degraded
+  moldy: degraded
+  corroded: degraded
+  damaged: degraded
+  # partial exposure / physical compromise -> middle degradation risk
+  partially_exposed: partially_exposed
+  partly_exposed: partially_exposed
+  exposed: partially_exposed
+  weathered: partially_exposed
+  broken: partially_exposed
+  cracked: partially_exposed
+  chipped: partially_exposed
+  torn: partially_exposed
+  open: partially_exposed
+  half_buried: partially_exposed
+  buried: partially_exposed
+  dirty: partially_exposed
+  muddy: partially_exposed
+  faded: partially_exposed
+
+# Unknown / unrecognised conditions are treated CONSERVATIVELY as partially
+# exposed (middle risk), never as pristine — so a perishable item the model
+# described in unexpected words is never pushed to the bottom of the queue.
+default_condition: partially_exposed
+
+# Additive point modifiers per context flag (drawn from a fixed vocabulary).
+# `biological_material` carries no score bonus but IS a force-urgent flag below.
+context_flag_modifiers:
+  near_body: 3
+  exposed_to_weather: 4
+  signs_of_tampering: 5
+  electronic_device: 3
+  chain_of_custody_break: 6
+  biological_material: 0
+
+urgency_thresholds:
+  # The additive score runs from ~2 to ~44 in practice (max: biological 9 x 1.5
+  # + degraded 9 + all flags 21 = 43.5), so a fixed 80 could never be reached.
+  # 30 marks the genuine top tier — a high-probative, degraded, multi-flag item.
+  # Urgency is ALSO forced independently by the flags below, regardless of score.
+  score_urgent: 30
+  force_urgent_flags:
+    - electronic_device
+    - exposed_to_weather
+    - biological_material
