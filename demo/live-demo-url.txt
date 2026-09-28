@@ -1,6 +1,0 @@
-NOT DEPLOYED
-
-# The single-page console also runs fully in-browser (an offline mirror of the same
-# deterministic engine). If you publish it as a hosted/shared page, paste that
-# public URL above in place of "NOT DEPLOYED". The primary evidence is the demo
-# video, which shows the FastAPI pipeline running locally.
